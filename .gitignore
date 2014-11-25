@@ -5,3 +5,4 @@
 /build
 *.iml
 .navigation
+lib/src/main/bin/
