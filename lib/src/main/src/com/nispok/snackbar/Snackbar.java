@@ -2,6 +2,11 @@ package com.nispok.snackbar;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
+import android.support.annotation.ColorRes;
+import android.support.annotation.StringRes;
+import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -9,11 +14,12 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.AbsListView;
 import android.widget.FrameLayout;
-import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.nispok.snackbar.enums.SnackbarType;
+import com.nispok.snackbar.layouts.SnackbarLayout;
 import com.nispok.snackbar.listeners.ActionClickListener;
 import com.nispok.snackbar.listeners.EventListener;
 import com.nispok.snackbar.listeners.SwipeDismissTouchListener;
@@ -21,7 +27,7 @@ import com.nispok.snackbar.listeners.SwipeDismissTouchListener;
 /**
  * View that provides quick feedback about an operation in a small popup at the base of the screen
  */
-public class Snackbar extends RelativeLayout {
+public class Snackbar extends SnackbarLayout {
 
     public enum SnackbarDuration {
         LENGTH_SHORT(2000), LENGTH_LONG(3500);
@@ -42,6 +48,10 @@ public class Snackbar extends RelativeLayout {
     private CharSequence mText;
     private int mColor = -1;
     private int mTextColor = -1;
+    private int mOffset;
+    private long mSnackbarStart;
+    private long mSnackbarFinish;
+    private long mTimeRemaining = -1;
     private CharSequence mActionLabel;
     private int mActionColor = -1;
     private boolean mAnimated = true;
@@ -52,6 +62,12 @@ public class Snackbar extends RelativeLayout {
     private boolean mIsShowing = false;
     private boolean mCanSwipeToDismiss = true;
     private boolean mIsDismissing = false;
+    private Runnable mDismissRunnable = new Runnable() {
+        @Override
+        public void run() {
+            dismiss();
+        }
+    };
 
     private Snackbar(Context context) {
         super(context);
@@ -84,6 +100,16 @@ public class Snackbar extends RelativeLayout {
     }
 
     /**
+     * Sets the text to be displayed in this {@link Snackbar}
+     *
+     * @param resId
+     * @return
+     */
+    public Snackbar text(@StringRes int resId) {
+        return text(getContext().getText(resId));
+    }
+
+    /**
      * Sets the background color of this {@link Snackbar}
      *
      * @param color
@@ -95,6 +121,16 @@ public class Snackbar extends RelativeLayout {
     }
 
     /**
+     * Sets the background color of this {@link Snackbar}
+     *
+     * @param resId
+     * @return
+     */
+    public Snackbar colorResource(@ColorRes int resId) {
+        return color(getResources().getColor(resId));
+    }
+
+    /**
      * Sets the text color of this {@link Snackbar}
      *
      * @param textColor
@@ -103,6 +139,16 @@ public class Snackbar extends RelativeLayout {
     public Snackbar textColor(int textColor) {
         mTextColor = textColor;
         return this;
+    }
+
+    /**
+     * Sets the text color of this {@link Snackbar}
+     *
+     * @param resId
+     * @return
+     */
+    public Snackbar textColorResource(@ColorRes int resId) {
+        return textColor(getResources().getColor(resId));
     }
 
     /**
@@ -118,6 +164,17 @@ public class Snackbar extends RelativeLayout {
     }
 
     /**
+     * Sets the action label to be displayed, if any. Note that if this is not set, the action
+     * button will not be displayed
+     *
+     * @param resId
+     * @return
+     */
+    public Snackbar actionLabel(@StringRes int resId) {
+        return actionLabel(getContext().getString(resId));
+    }
+
+    /**
      * Sets the color of the action button label. Note that you must set a button label with
      * {@link Snackbar#actionLabel(CharSequence)} for this button to be displayed
      *
@@ -127,6 +184,17 @@ public class Snackbar extends RelativeLayout {
     public Snackbar actionColor(int actionColor) {
         mActionColor = actionColor;
         return this;
+    }
+
+    /**
+     * Sets the color of the action button label. Note that you must set a button label with
+     * {@link Snackbar#actionLabel(CharSequence)} for this button to be displayed
+     *
+     * @param resId
+     * @return
+     */
+    public Snackbar actionColorResource(@ColorRes int resId) {
+        return actionColor(getResources().getColor(resId));
     }
 
     /**
@@ -209,21 +277,87 @@ public class Snackbar extends RelativeLayout {
         return this;
     }
 
-    private void init(Activity parent) {
-        RelativeLayout layout = (RelativeLayout) LayoutInflater.from(parent)
-                .inflate(R.layout.snackbar, this, true);
+    /**
+     * Attaches this {@link Snackbar} to an AbsListView (ListView, GridView, ExpandableListView) so
+     * it dismisses when the list is scrolled
+     *
+     * @param absListView
+     * @return
+     */
+    public Snackbar attachToAbsListView(AbsListView absListView) {
+        absListView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                dismiss();
+            }
 
-        layout.setBackgroundColor(mColor != -1 ? mColor :
-                getResources().getColor(R.color.snackbar_background));
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount,
+                                 int totalItemCount) {
+            }
+        });
 
-        int height = mType.getHeightInPx(getResources().getDisplayMetrics().density);
+        return this;
+    }
 
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, height);
+    /**
+     * Attaches this {@link Snackbar} to a RecyclerView so it dismisses when the list is scrolled
+     *
+     * @param recyclerView
+     * @return
+     */
+    public Snackbar attachToRecyclerView(RecyclerView recyclerView) {
+        recyclerView.setOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                dismiss();
+            }
+        });
 
-        layout.setLayoutParams(params);
+        return this;
+    }
 
-        TextView snackbarText = (TextView) layout.findViewById(R.id.snackbar_text);
+    private FrameLayout.LayoutParams init(Activity parent) {
+        SnackbarLayout layout = (SnackbarLayout) LayoutInflater.from(parent)
+                .inflate(R.layout.sb__template, this, true);
+
+        mColor = mColor != -1 ? mColor : getResources().getColor(R.color.sb__background);
+        mOffset = (int) (getResources().getDimension(R.dimen.sb__offset)  /
+                getResources().getDisplayMetrics().density);
+
+        float scale = getResources().getDisplayMetrics().density;
+
+        FrameLayout.LayoutParams params;
+        if (getResources().getConfiguration().smallestScreenWidthDp < 600) {
+            // Phone
+            layout.setMinimumHeight(dpToPx(mType.getMinHeight(), scale));
+            layout.setMaxHeight(dpToPx(mType.getMaxHeight(), scale));
+            layout.setBackgroundColor(mColor);
+            params = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.WRAP_CONTENT);
+        } else {
+            // Tablet/desktop
+            mType = SnackbarType.SINGLE_LINE; // Force single-line
+            layout.setMinimumWidth(dpToPx((int) getResources().getDimension(R.dimen.sb__min_width),
+                    scale));
+            layout.setMaxWidth(dpToPx((int) getResources().getDimension(R.dimen.sb__max_width),
+                    scale));
+            layout.setBackgroundResource(R.drawable.sb__bg);
+            GradientDrawable bg = (GradientDrawable) layout.getBackground();
+            bg.setColor(mColor);
+
+            params = new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    dpToPx(mType.getMaxHeight(), scale));
+
+            params.leftMargin = dpToPx(mOffset, scale);
+            params.bottomMargin = dpToPx(mOffset, scale);
+        }
+
+        params.gravity = Gravity.BOTTOM;
+
+        TextView snackbarText = (TextView) layout.findViewById(R.id.sb__text);
         snackbarText.setText(mText);
 
         if (mTextColor != -1) {
@@ -232,7 +366,7 @@ public class Snackbar extends RelativeLayout {
 
         snackbarText.setMaxLines(mType.getMaxLines());
 
-        TextView snackbarAction = (TextView) layout.findViewById(R.id.snackbar_action);
+        TextView snackbarAction = (TextView) layout.findViewById(R.id.sb__action);
         if (!TextUtils.isEmpty(mActionLabel)) {
             requestLayout();
             snackbarAction.setText(mActionLabel);
@@ -273,9 +407,27 @@ public class Snackbar extends RelativeLayout {
                                 finish();
                             }
                         }
+
+                        @Override
+                        public void pauseTimer(boolean shouldPause) {
+                            if (shouldPause) {
+                                removeCallbacks(mDismissRunnable);
+
+                                mSnackbarFinish = System.currentTimeMillis();
+                            } else {
+                                mTimeRemaining -= (mSnackbarFinish - mSnackbarStart);
+
+                                startTimer(mTimeRemaining);
+                            }
+                        }
                     }));
         }
 
+        return params;
+    }
+
+    private static int dpToPx(int dp, float scale) {
+        return (int) (dp * scale + 0.5f);
     }
 
     /**
@@ -285,19 +437,23 @@ public class Snackbar extends RelativeLayout {
      * @param targetActivity
      */
     public void show(Activity targetActivity) {
-        init(targetActivity);
+        FrameLayout.LayoutParams params = init(targetActivity);
 
         ViewGroup root = (ViewGroup) targetActivity.findViewById(android.R.id.content);
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        params.gravity = Gravity.BOTTOM;
 
         root.addView(this, params);
+
+        bringToFront();
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
+            root.requestLayout();
+            root.invalidate();
+        }
 
         mIsShowing = true;
 
         if (mEventListener != null) {
-            mEventListener.onShow(mType.getHeight());
+            mEventListener.onShow(mType.getMaxHeight() + mOffset);
         }
 
         if (!mAnimated) {
@@ -317,6 +473,12 @@ public class Snackbar extends RelativeLayout {
                 post(new Runnable() {
                     @Override
                     public void run() {
+                        mSnackbarStart = System.currentTimeMillis();
+
+                        if (mTimeRemaining == -1) {
+                            mTimeRemaining = getDuration();
+                        }
+
                         startTimer();
                     }
                 });
@@ -331,12 +493,11 @@ public class Snackbar extends RelativeLayout {
     }
 
     private void startTimer() {
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                dismiss();
-            }
-        }, getDuration());
+        postDelayed(mDismissRunnable, getDuration());
+    }
+
+    private void startTimer(long duration) {
+        postDelayed(mDismissRunnable, duration);
     }
 
     public void dismiss() {
@@ -382,7 +543,7 @@ public class Snackbar extends RelativeLayout {
             parent.removeView(this);
         }
         if (mEventListener != null && mIsShowing) {
-            mEventListener.onDismiss(mType.getHeight());
+            mEventListener.onDismiss(mType.getMaxHeight() + mOffset);
         }
         mIsShowing = false;
     }

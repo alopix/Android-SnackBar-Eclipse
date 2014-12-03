@@ -1,4 +1,9 @@
-<manifest package="com.nispok.snackbar">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.nispok.snackbar" >
+
+    <uses-sdk
+        android:minSdkVersion="14"
+        android:targetSdkVersion="21" />
 
     <application />
 
