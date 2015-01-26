@@ -1,13 +1,8 @@
-package com.nispok.sample.snackbar;
-
-import com.nispok.sample.snackbar.utils.SnackbarManager;
-import com.nispok.snackbar.Snackbar;
-import com.nispok.snackbar.enums.SnackbarType;
-import com.nispok.snackbar.listeners.ActionClickListener;
-import com.nispok.snackbar.listeners.EventListener;
+package com.nispok.samples.snackbar;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
@@ -18,6 +13,12 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
+
+import com.nispok.snackbar.Snackbar;
+import com.nispok.snackbar.SnackbarManager;
+import com.nispok.snackbar.enums.SnackbarType;
+import com.nispok.snackbar.listeners.ActionClickListener;
+import com.nispok.snackbar.listeners.EventListener;
 
 public class SnackbarSampleActivity extends ActionBarActivity {
 
@@ -32,10 +33,9 @@ public class SnackbarSampleActivity extends ActionBarActivity {
         singleLineButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SnackbarManager.getInstance().show(
+                SnackbarManager.show(
                         Snackbar.with(SnackbarSampleActivity.this)
-                                .text("Single-line snackbar"),
-                        SnackbarSampleActivity.this);
+                                .text("Single-line snackbar"));
             }
         });
 
@@ -43,19 +43,18 @@ public class SnackbarSampleActivity extends ActionBarActivity {
         singleLineWithActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SnackbarManager.getInstance().show(
+                SnackbarManager.show(
                         Snackbar.with(SnackbarSampleActivity.this)
                                 .text("Something has been done")
                                 .actionLabel("Undo")
                                 .actionListener(new ActionClickListener() {
                                     @Override
-                                    public void onActionClicked() {
+                                    public void onActionClicked(Snackbar snackbar) {
                                         Toast.makeText(SnackbarSampleActivity.this,
                                                 "Action undone",
                                                 Toast.LENGTH_SHORT).show();
                                     }
-                                }),
-                        SnackbarSampleActivity.this);
+                                }));
             }
         });
 
@@ -63,12 +62,11 @@ public class SnackbarSampleActivity extends ActionBarActivity {
         multiLineButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SnackbarManager.getInstance().show(
+                SnackbarManager.show(
                         Snackbar.with(SnackbarSampleActivity.this)
                                 .type(SnackbarType.MULTI_LINE)
                                 .text("This is a multi-line snackbar. Keep in mind that snackbars" +
-                                        " are meant for VERY short messages"),
-                        SnackbarSampleActivity.this);
+                                        " are meant for VERY short messages"));
             }
         });
 
@@ -76,7 +74,7 @@ public class SnackbarSampleActivity extends ActionBarActivity {
         multiLineWithActionButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SnackbarManager.getInstance().show(
+                SnackbarManager.show(
                         Snackbar.with(SnackbarSampleActivity.this)
                                 .type(SnackbarType.MULTI_LINE)
                                 .text("This is a multi-line snackbar with an action button. Note " +
@@ -84,13 +82,12 @@ public class SnackbarSampleActivity extends ActionBarActivity {
                                 .actionLabel("Action")
                                 .actionListener(new ActionClickListener() {
                                     @Override
-                                    public void onActionClicked() {
+                                    public void onActionClicked(Snackbar snackbar) {
                                         Toast.makeText(SnackbarSampleActivity.this,
                                                 "Action clicked",
                                                 Toast.LENGTH_SHORT).show();
                                     }
-                                }),
-                        SnackbarSampleActivity.this);
+                                }));
             }
         });
 
@@ -98,12 +95,11 @@ public class SnackbarSampleActivity extends ActionBarActivity {
         noAnimationButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SnackbarManager.getInstance().show(
+                SnackbarManager.show(
                         Snackbar.with(SnackbarSampleActivity.this)
                                 .text("No animation :(")
                                 .animation(false)
-                                .duration(2500l),
-                        SnackbarSampleActivity.this);
+                                .duration(2500l));
             }
         });
 
@@ -111,23 +107,43 @@ public class SnackbarSampleActivity extends ActionBarActivity {
         eventListenerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SnackbarManager.getInstance().show(
+                SnackbarManager.show(
                         Snackbar.with(SnackbarSampleActivity.this)
                                 .text("I'm showing a toast on exit")
                                 .eventListener(new EventListener() {
                                     @Override
-                                    public void onShow(int height) {
-                                        Log.i(TAG, "Snackbar will show. Height: " + height);
+                                    public void onShow(Snackbar snackbar) {
+                                        Log.i(TAG, String.format(
+                                                "Snackbar will show. Width: %d Height: %d Offset: %d",
+                                                snackbar.getWidth(), snackbar.getHeight(),
+                                                snackbar.getOffset()));
                                     }
 
                                     @Override
-                                    public void onDismiss(int height) {
-                                        Toast.makeText(SnackbarSampleActivity.this,
-                                                "Snackbar dismissed. Height in DP: " + height,
+                                    public void onShown(Snackbar snackbar) {
+                                        Log.i(TAG, String.format(
+                                                "Snackbar shown. Width: %d Height: %d Offset: %d",
+                                                snackbar.getWidth(), snackbar.getHeight(),
+                                                snackbar.getOffset()));
+                                    }
+
+                                    @Override
+                                    public void onDismiss(Snackbar snackbar) {
+                                        Log.i(TAG, String.format(
+                                                "Snackbar will dismiss. Width: %d Height: %d Offset: %d",
+                                                snackbar.getWidth(), snackbar.getHeight(),
+                                                snackbar.getOffset()));
+                                    }
+
+                                    @Override
+                                    public void onDismissed(Snackbar snackbar) {
+                                        Toast.makeText(SnackbarSampleActivity.this, String.format(
+                                                        "Snackbar dismissed. Width: %d Height: %d Offset: %d",
+                                                        snackbar.getWidth(), snackbar.getHeight(),
+                                                        snackbar.getOffset()),
                                                 Toast.LENGTH_SHORT).show();
                                     }
-                                }),
-                        SnackbarSampleActivity.this);
+                                }));
             }
         });
 
@@ -135,7 +151,7 @@ public class SnackbarSampleActivity extends ActionBarActivity {
         customColorsButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SnackbarManager.getInstance().show(
+                SnackbarManager.show(
                         Snackbar.with(SnackbarSampleActivity.this)
                                 .text("Different colors!!!")
                                 .textColor(Color.parseColor("#ff9d9d9c"))
@@ -144,12 +160,11 @@ public class SnackbarSampleActivity extends ActionBarActivity {
                                 .actionColor(Color.parseColor("#ff5a2900"))
                                 .actionListener(new ActionClickListener() {
                                     @Override
-                                    public void onActionClicked() {
+                                    public void onActionClicked(Snackbar snackbar) {
                                         Log.i(TAG, "Action touched");
                                     }
                                 })
-                                .duration(Snackbar.SnackbarDuration.LENGTH_SHORT),
-                        SnackbarSampleActivity.this);
+                                .duration(Snackbar.SnackbarDuration.LENGTH_SHORT));
             }
         });
 
@@ -157,11 +172,22 @@ public class SnackbarSampleActivity extends ActionBarActivity {
         unswipeableButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                SnackbarManager.getInstance().show(
+                SnackbarManager.show(
                         Snackbar.with(SnackbarSampleActivity.this)
-                                .text("Try to swipe me off the screen")
-                                .swipeToDismiss(false),
-                        SnackbarSampleActivity.this);
+                                .text("Try to swipe me off from the screen")
+                                .swipeToDismiss(false));
+            }
+        });
+
+        Button indefiniteButton = (Button) findViewById(R.id.indefinite);
+        indefiniteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SnackbarManager.show(
+                        Snackbar.with(SnackbarSampleActivity.this)
+                                .type(SnackbarType.MULTI_LINE)
+                                .duration(Snackbar.SnackbarDuration.LENGTH_INDEFINITE)
+                                .text("Indefinite duration, ideal for communicating errors"));
             }
         });
 
@@ -184,6 +210,20 @@ public class SnackbarSampleActivity extends ActionBarActivity {
                 startActivity(sampleIntent);
             }
         });
+
+        Button customTypefaceButton = (Button) findViewById(R.id.typeface_example);
+        customTypefaceButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Typeface tf = Typeface.createFromAsset(getAssets(), "fonts/Roboto-LightItalic.ttf");
+                SnackbarManager.show(
+                        Snackbar.with(SnackbarSampleActivity.this)
+                        .text("Custom font!")
+                        .textTypeface(tf)
+                        .actionLabel("Cool")
+                        .actionLabelTypeface(tf));
+            }
+        });
     }
 
     @Override
@@ -195,8 +235,8 @@ public class SnackbarSampleActivity extends ActionBarActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch(item.getItemId()) {
-            case R.id.action_go_to_repo:
+        switch (item.getItemId()) {
+            case R.id.visit_repo:
                 goToRepo();
                 return true;
             default:

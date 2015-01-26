@@ -1,7 +1,7 @@
-package com.nispok.sample.snackbar;
+package com.nispok.samples.snackbar;
 
-import com.nispok.sample.snackbar.utils.SnackbarManager;
 import com.nispok.snackbar.Snackbar;
+import com.nispok.snackbar.SnackbarManager;
 
 import android.graphics.Color;
 import android.os.Bundle;
@@ -41,14 +41,13 @@ public class SnackbarListViewSampleActivity extends ActionBarActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                SnackbarManager.getInstance().show(
+                SnackbarManager.show(
                         Snackbar.with(SnackbarListViewSampleActivity.this)
                                 .text(String.format("Item %d pressed", (position + 1)))
                                 .actionLabel("Close")
                                 .actionColor(Color.parseColor("#FF8A80"))
                                 .duration(Snackbar.SnackbarDuration.LENGTH_LONG)
-                                .attachToAbsListView(listView),
-                            SnackbarListViewSampleActivity.this);
+                                .attachToAbsListView(listView));
             }
         });
     }
