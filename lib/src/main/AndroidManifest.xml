@@ -2,7 +2,7 @@
     package="com.nispok.snackbar" >
 
     <uses-sdk
-        android:minSdkVersion="14"
+        android:minSdkVersion="10"
         android:targetSdkVersion="21" />
 
     <application />
